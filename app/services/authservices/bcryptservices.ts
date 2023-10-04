@@ -6,7 +6,7 @@ export const hashPassword = async (userPassword: string) => {
   return hashedPassword;
 };
 
-export const isVsalidPassword = async (
+export const isValidPassword = async (
   password: string,
   DBpassword: string
 ) => {

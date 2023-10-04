@@ -1,29 +1,48 @@
 import Axios from "@/axios/axios";
 import { NextRequest, NextResponse } from "next/server";
-// import bcryptjs from 'bcryptjs';
+import { findUserByEmail } from "@/hasuraQuery/authentication";
+import { isValidPassword } from "@/app/services/authservices/bcryptservices";
 
 export async function POST(request: NextRequest) {
   try {
+
     const reqBody = await request.json();
-    console.log(reqBody, "req.body");
-    const { name, email, password } = reqBody;
-    const response = await Axios.post("", {
-      query: `
-        mutation Adduser($name:String!,$email:String!,$password:String!){
-            insert_users_one(object:{name:$name,email:$email,password:$password}){
-                id,name,email
-            }
-        }
-        `,
-      variables: {
-        name: name,
-        email: email,
-        password: password,
+    const { email, password } = reqBody;
+    const userQuery= await findUserByEmail(email)
+    const findUser= await Axios.post("",{
+      query:userQuery,
+      variables:{
+        email:email
       },
     });
-    console.log(response, ":response");
-    return NextResponse.json({ email, password });
+  
+    const userPassword= findUser?.data?.data?.users_users[0]?.password
+    
+    if(!userPassword){
+    return NextResponse.json({
+      success:false,
+      message:"incorrect email or password"
+    });
+    }else{
+     const passwordIsValid= await isValidPassword(password,userPassword)
+     if(passwordIsValid){
+      return NextResponse.json({
+        success:true,
+        message:"login successfull"
+      })
+     }else{
+      
+      return NextResponse.json({
+        success:false,
+        message:"incorrect email or password"
+      })
+     }
+    }
+
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({
+      success:false,
+      message:'network issue'
+    });
   }
 }
